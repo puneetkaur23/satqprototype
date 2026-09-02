@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SatQuery AI — Agentic Earth Observation Intelligence</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 1px solid #334155;
+            margin-bottom: 30px;
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+        
+        .upload-section {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .image-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .drop-zone {
+            border: 2px dashed #475569;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+            background: rgba(15, 23, 42, 0.5);
+        }
+        
+        .drop-zone:hover {
+            border-color: #38bdf8;
+            background: rgba(56, 189, 248, 0.05);
+        }
+        
+        .drop-zone.has-file {
+            border-color: #22c55e;
+            background: rgba(34, 197, 94, 0.05);
+        }
+        
+        .drop-zone label {
+            display: block;
+            cursor: pointer;
+            color: #94a3b8;
+        }
+        
+        .drop-zone input { display: none; }
+        
+        .preview-img {
+            max-width: 100%;
+            max-height: 150px;
+            border-radius: 8px;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .query-box {
+            width: 100%;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #475569;
+            background: #0f172a;
+            color: #e2e8f0;
+            font-size: 1rem;
+            margin-bottom: 15px;
+            resize: vertical;
+        }
+        
+        .query-box:focus {
+            outline: none;
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+        }
+        
+        .btn-analyze {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(90deg, #2563eb, #4f46e5);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn-analyze:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
+        }
+        
+        .btn-analyze:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .spinner {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .spinner.active { display: block; }
+        
+        .spinner-ring {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #334155;
+            border-top-color: #38bdf8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .results-section {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .result-card {
+            background: rgba(30, 41, 59, 0.7);
+            border: 1px solid #334155;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .result-card h3 {
+            color: #38bdf8;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .answer-text {
+            font-size: 1.15rem;
+            line-height: 1.7;
+            color: #f1f5f9;
+            white-space: pre-wrap;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .badge-live { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+        .badge-arch { background: rgba(234, 179, 8, 0.2); color: #facc15; }
+        .badge-task { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+        
+        .confidence-bar {
+            height: 8px;
+            background: #334155;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #22c55e, #38bdf8);
+            border-radius: 4px;
+            transition: width 1s ease;
+        }
+        
+        .audit-trail {
+            background: #0f172a;
+            border-radius: 10px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            overflow-x: auto;
+            border: 1px solid #1e293b;
+        }
+        
+        .audit-trail pre { margin: 0; }
+        
+        .evidence-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .evidence-item {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 3px solid #38bdf8;
+        }
+        
+        .footer-note {
+            text-align: center;
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #334155;
+        }
+        
+        @media (max-width: 768px) {
+            .image-inputs { grid-template-columns: 1fr; }
+            header h1 { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛰️ SatQuery AI</h1>
+            <p>Agentic Multimodal Earth-Observation Intelligence</p>
+            <p style="font-size: 0.9rem; margin-top: 8px; opacity: 0.7;">
+                Supports Cartosat · RISAT · Resourcesat · Bhuvan · Sentinel
+            </p>
+        </header>
+
+        <div class="upload-section">
+            <div class="image-inputs">
+                <div class="drop-zone" id="dropZone1" onclick="document.getElementById('imageInput').click()">
+                    <label>
+                        📷 <strong>Primary Image</strong><br>
+                        <span style="font-size: 0.9rem;">Click to upload Optical / MSI</span>
+                        <input type="file" id="imageInput" accept="image/*,.tif,.tiff" onchange="handleFile(this, 'preview1', 'dropZone1')">
+                        <img id="preview1" class="preview-img">
+                    </label>
+                </div>
+                
+                <div class="drop-zone" id="dropZone2" onclick="document.getElementById('imageInput2').click()">
+                    <label>
+                        📡 <strong>Secondary Image (Optional)</strong><br>
+                        <span style="font-size: 0.9rem;">For change detection or SAR fusion</span>
+                        <input type="file" id="imageInput2" accept="image/*,.tif,.tiff" onchange="handleFile(this, 'preview2', 'dropZone2')">
+                        <img id="preview2" class="preview-img">
+                    </label>
+                </div>
+            </div>
+
+            <input type="text" id="queryInput" class="query-box" 
+                   placeholder="Ask a question... e.g., 'What land cover types are visible?' or 'What changed between these images?'">
+            
+            <button class="btn-analyze" id="analyzeBtn" onclick="analyze()">
+                🔍 Analyze with Agentic Orchestration
+            </button>
+        </div>
+
+        <div class="spinner" id="spinner">
+            <div class="spinner-ring"></div>
+            <p>🧠 Agent is classifying intent and routing to specialist models...</p>
+            <p style="font-size: 0.85rem; color: #64748b; margin-top: 10px;" id="spinnerDetail">Loading...</p>
+        </div>
+
+        <div class="results-section" id="results">
+            <div class="result-card">
+                <h3>💬 Intelligence Answer</h3>
+                <div style="margin-bottom: 15px;">
+                    <span class="badge badge-task" id="taskBadge">VQA</span>
+                    <span class="badge" id="statusBadge">LIVE</span>
+                </div>
+                <div class="answer-text" id="answer"></div>
+            </div>
+
+            <div class="result-card">
+                <h3>📈 Confidence Score</h3>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span>Model Confidence</span>
+                    <strong id="confidenceValue">0%</strong>
+                </div>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" id="confidenceBar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="result-card">
+                <h3>🗺️ Evidence & Provenance</h3>
+                <div class="evidence-grid" id="evidenceGrid"></div>
+            </div>
+
+            <div class="result-card">
+                <h3>📋 Execution Audit Trail</h3>
+                <p style="color: #94a3b8; font-size: 0.9rem; margin-bottom: 10px;">
+                    Full transparency into agent decisions, model selection, and routing logic.
+                </p>
+                <div class="audit-trail">
+                    <pre id="audit"></pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-note">
+            <p>🔬 <strong>Prototype Mode:</strong> Single-image VQA runs live on LLaVA-1.6. 
+            Advanced tasks (change detection, SAR fusion, grounding) demonstrate the agentic architecture.</p>
+            <p style="margin-top: 8px;">Built for rapid Earth-observation intelligence.</p>
+        </div>
+    </div>
+
+    <script>
+        function handleFile(input, previewId, zoneId) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const preview = document.getElementById(previewId);
+            const zone = document.getElementById(zoneId);
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                zone.classList.add('has-file');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function analyze() {
+            const image1 = document.getElementById('imageInput').files[0];
+            const image2 = document.getElementById('imageInput2').files[0];
+            const query = document.getElementById('queryInput').value;
+            const btn = document.getElementById('analyzeBtn');
+            const spinner = document.getElementById('spinner');
+            const results = document.getElementById('results');
+            const spinnerDetail = document.getElementById('spinnerDetail');
+
+            if (!image1) {
+                alert('Please upload at least one image.');
+                return;
+            }
+            if (!query.trim()) {
+                alert('Please enter a question.');
+                return;
+            }
+
+            // UI State: Loading
+            btn.disabled = true;
+            spinner.classList.add('active');
+            results.style.display = 'none';
+            
+            const phases = [
+                "Parsing user query...",
+                "Classifying task intent...",
+                "Routing to specialist model...",
+                "Executing inference pipeline...",
+                "Synthesizing evidence-backed response..."
+            ];
+            let phaseIdx = 0;
+            const phaseInterval = setInterval(() => {
+                if (phaseIdx < phases.length) {
+                    spinnerDetail.textContent = phases[phaseIdx++];
+                }
+            }, 800);
+
+            try {
+                const formData = new FormData();
+                formData.append('image', image1);
+                if (image2) formData.append('image2', image2);
+                formData.append('query', query);
+
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                clearInterval(phaseInterval);
+
+                if (!data.success) throw new Error(data.error || 'Unknown error');
+
+                // Render Results
+                document.getElementById('answer').textContent = data.answer;
+                document.getElementById('taskBadge').textContent = data.task.toUpperCase().replace('_', ' ');
+                
+                const statusBadge = document.getElementById('statusBadge');
+                statusBadge.textContent = data.model.status;
+                statusBadge.className = 'badge ' + (data.model.status === 'LIVE' ? 'badge-live' : 'badge-arch');
+                
+                // Confidence animation
+                const confPct = Math.round(data.confidence * 100);
+                document.getElementById('confidenceValue').textContent = confPct + '%';
+                setTimeout(() => {
+                    document.getElementById('confidenceBar').style.width = confPct + '%';
+                }, 100);
+                
+                // Evidence
+                const evGrid = document.getElementById('evidenceGrid');
+                evGrid.innerHTML = '';
+                if (data.evidence && data.evidence.visual_regions) {
+                    data.evidence.visual_regions.forEach(ev => {
+                        const div = document.createElement('div');
+                        div.className = 'evidence-item';
+                        div.innerHTML = `<strong>${ev.type.toUpperCase()}</strong><br>${JSON.stringify(ev)}`;
+                        evGrid.appendChild(div);
+                    });
+                }
+                
+                // Audit trail
+                document.getElementById('audit').textContent = JSON.stringify(data.execution_trace, null, 2);
+                
+                results.style.display = 'block';
+                
+            } catch (err) {
+                clearInterval(phaseInterval);
+                alert('Error: ' + err.message);
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+                spinner.classList.remove('active');
+            }
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('queryInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') analyze();
+        });
+    </script>
+</body>
+</html>
